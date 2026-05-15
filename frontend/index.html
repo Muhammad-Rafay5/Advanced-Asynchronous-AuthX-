@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuthX | Premium Asynchronous Auth</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="aurora-bg"></div>
+
+    <nav>
+        <div class="logo">AuthX.</div>
+        <div class="nav-links" id="nav-links">
+            <button class="nav-btn" onclick="showSection('login')">Login</button>
+            <button class="btn-primary" onclick="showSection('register')">Get Started</button>
+        </div>
+    </nav>
+
+    <main>
+        <!-- Login Section -->
+        <section id="login-section" class="active">
+            <div class="glass-card">
+                <h2>Welcome Back</h2>
+                <p class="subtitle">Enter your credentials to access your account</p>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="login-email" placeholder="name@company.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Sign In</button>
+                </form>
+                <div class="form-footer" style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                    Don't have an account? <a href="#" onclick="showSection('register')" style="color: var(--primary); text-decoration: none; font-weight: 500;">Create one</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Register Section -->
+        <section id="register-section">
+            <div class="glass-card">
+                <h2>Create Account</h2>
+                <p class="subtitle">Join the future of secure authentication</p>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="reg-email" placeholder="name@company.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="reg-password" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="submit-btn">Create Account</button>
+                </form>
+                <div class="form-footer" style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                    Already have an account? <a href="#" onclick="showSection('login')" style="color: var(--primary); text-decoration: none; font-weight: 500;">Sign in</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboard-section">
+            <div class="glass-card dashboard-card">
+                <div class="user-avatar" id="user-initials">U</div>
+                <h2 id="user-greeting">Hello, User</h2>
+                <p class="subtitle">Your secure session is active</p>
+                
+                <div class="user-info">
+                    <div class="info-item">
+                        <span class="info-label">Account ID</span>
+                        <span id="display-id" style="font-family: monospace; font-size: 0.8rem;">...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Email</span>
+                        <span id="display-email">...</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Last Login</span>
+                        <span id="display-last-login">...</span>
+                    </div>
+                </div>
+
+                <div class="refresh-container">
+                    <div class="expiry-info">
+                        <span class="expiry-label">Session Expires In</span>
+                        <span class="expiry-time" id="session-countdown">00:00</span>
+                    </div>
+                    <button class="refresh-btn" onclick="handleRefresh()">Refresh Session</button>
+                </div>
+
+                <button class="submit-btn" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--card-border); margin-top: 2rem;" onclick="handleLogout()">
+                    Logout Securely
+                </button>
+            </div>
+        </section>
+
+        <!-- Sessions Section -->
+        <section id="sessions-section">
+            <div class="glass-card sessions-card">
+                <h2>Active Users</h2>
+                <p class="subtitle">Real-time status of all registered users</p>
+                
+                <table class="user-list">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Last Login</th>
+                            <th>Session Expiry</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-table-body">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="auth.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
