@@ -28,11 +28,21 @@ def create_token(subject: Union[str, Any], expires_delta: timedelta, secret: str
 
 
 def create_access_token(subject: Union[str, Any]) -> str:
-    return create_token(subject, timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES), settings.ACCESS_TOKEN_SECRET, "access")
+    return create_token(
+        subject,
+        timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+        settings.ACCESS_TOKEN_SECRET,
+        "access"
+    )
 
 
 def create_refresh_token(subject: Union[str, Any]) -> str:
-    return create_token(subject, timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS), settings.REFRESH_TOKEN_SECRET, "refresh")
+    return create_token(
+        subject,
+        timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        settings.REFRESH_TOKEN_SECRET,
+        "refresh"
+    )
 
 
 def decode_token(token: str, secret: str) -> dict:
