@@ -21,14 +21,14 @@ async def test_full_workflow():
         # 1. Registration
         reg_response = await ac.post("/auth/register", json={
             "email": "test@example.com",
-            "password": "securepassword123"
+            "password": "SecurePassword123"
         })
         assert reg_response.status_code == 201
 
         # 2. Authentication
         login_response = await ac.post("/auth/login", data={
             "username": "test@example.com",
-            "password": "securepassword123"
+            "password": "SecurePassword123"
         })
         assert login_response.status_code == 200
         tokens = login_response.json()
