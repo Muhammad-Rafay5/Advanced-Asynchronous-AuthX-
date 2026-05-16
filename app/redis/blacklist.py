@@ -15,8 +15,9 @@ class BlacklistService:
         if self._use_redis:
             try:
                 await self.redis.setex(token_jti, expires_in_seconds, "blacklisted")
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logging.error(f"Redis add error: {e}")
         else:
             self._internal_blacklist.add(token_jti)
 

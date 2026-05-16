@@ -26,7 +26,7 @@ jobs:
       run: flake8 app
       
     - name: Security scan with Bandit
-      run: bandit -r app
+      run: bandit -r app -x app/tests
       
     - name: Run Async Tests
       run: pytest
