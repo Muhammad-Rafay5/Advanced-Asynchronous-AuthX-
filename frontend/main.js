@@ -201,7 +201,7 @@ async function loadSessions() {
         return;
     }
 
-    el.tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem;">Synchronizing with Identity Repository...</td></tr>';
+    el.tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 3rem;">Synchronizing with Identity Repository...</td></tr>';
     
     try {
         const users = await authService.getAllUsers();
@@ -233,6 +233,15 @@ async function loadSessions() {
                 }
             }
 
+            let ttlDisplay = '—';
+            if (isMe) {
+                const token = authService.getAccessToken();
+                const payload = parseJwt(token);
+                if (payload && payload.iat && payload.exp) {
+                    ttlDisplay = Math.ceil((payload.exp - payload.iat) / 60) + ' min';
+                }
+            }
+
             row.innerHTML = `
                 <td style="color: var(--text-muted);">#${index + 1}</td>
                 <td>
@@ -241,15 +250,14 @@ async function loadSessions() {
                 </td>
                 <td><span class="badge ${statusClass}">${statusText}</span></td>
                 <td><span class="badge ${levelClass}">${accessLevel}</span></td>
-                <td>15</td>
+                <td>${ttlDisplay}</td>
                 <td><span class="badge ${sessionClass}" style="border: none;">${sessionStatus}</span></td>
-                <td><button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">Apply</button></td>
             `;
             el.tableBody.appendChild(row);
         });
     } catch (err) {
         console.error('Session load failed:', err);
-        el.tableBody.innerHTML = `<tr><td colspan="7" style="color: var(--accent-red); text-align: center;">Error: ${escapeHtml(err.message)}</td></tr>`;
+        el.tableBody.innerHTML = `<tr><td colspan="6" style="color: var(--accent-red); text-align: center;">Error: ${escapeHtml(err.message)}</td></tr>`;
     } finally {
         isLoadingSessions = false;
     }
@@ -260,6 +268,8 @@ window.addEventListener('auth-failed', () => {
     showToast('Identity token expired', 'error');
     handleLogout();
 });
+
+window.addEventListener('tokens-refreshed', startCountdown);
 
 // Initial Load
 window.addEventListener('DOMContentLoaded', () => {
@@ -275,5 +285,14 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     } else {
         showSection('login');
+    }
+
+    const regPassword = document.getElementById('reg-password');
+    if (regPassword) {
+        regPassword.addEventListener('input', () => {
+            const v = regPassword.value;
+            const ok = v.length >= 8 && /[A-Z]/.test(v) && /[0-9]/.test(v);
+            regPassword.style.borderColor = v.length === 0 ? '' : ok ? 'var(--accent-green)' : 'var(--accent-red)';
+        });
     }
 });

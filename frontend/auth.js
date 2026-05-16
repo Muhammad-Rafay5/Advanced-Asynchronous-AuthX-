@@ -1,22 +1,18 @@
 const API_URL = 'http://127.0.0.1:8000';
 
+let _accessToken = null;
+
 const authService = {
-    saveTokens(access, refresh) {
-        localStorage.setItem('access_token', access);
-        localStorage.setItem('refresh_token', refresh);
+    saveTokens(access) {
+        _accessToken = access;
     },
 
     getAccessToken() {
-        return localStorage.getItem('access_token');
-    },
-
-    getRefreshToken() {
-        return localStorage.getItem('refresh_token');
+        return _accessToken;
     },
 
     clearTokens() {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        _accessToken = null;
     },
 
     async register(email, password) {
@@ -34,7 +30,6 @@ const authService = {
     },
 
     async login(email, password) {
-        // FastAPI OAuth2PasswordRequestForm expects form data
         const formData = new URLSearchParams();
         formData.append('username', email);
         formData.append('password', password);
@@ -42,7 +37,8 @@ const authService = {
         const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData
+            body: formData,
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -51,18 +47,15 @@ const authService = {
         }
 
         const data = await response.json();
-        this.saveTokens(data.access_token, data.refresh_token);
+        this.saveTokens(data.access_token);
         return data;
     },
 
     async refresh() {
-        const refreshToken = this.getRefreshToken();
-        if (!refreshToken) throw new Error('No refresh token available');
-
         const response = await fetch(`${API_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refreshToken })
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -71,7 +64,10 @@ const authService = {
         }
 
         const data = await response.json();
-        this.saveTokens(data.access_token, data.refresh_token);
+        this.saveTokens(data.access_token);
+        
+        window.dispatchEvent(new CustomEvent('tokens-refreshed'));
+        
         return data.access_token;
     },
 
@@ -83,13 +79,13 @@ const authService = {
             'Authorization': `Bearer ${token}`
         };
 
-        let response = await fetch(`${API_URL}${url}`, { ...options, headers });
+        let response = await fetch(`${API_URL}${url}`, { ...options, headers, credentials: 'include' });
 
         if (response.status === 401) {
             try {
                 const newToken = await this.refresh();
                 headers['Authorization'] = `Bearer ${newToken}`;
-                response = await fetch(`${API_URL}${url}`, { ...options, headers });
+                response = await fetch(`${API_URL}${url}`, { ...options, headers, credentials: 'include' });
             } catch (e) {
                 window.dispatchEvent(new CustomEvent('auth-failed'));
                 throw e;
@@ -110,7 +106,8 @@ const authService = {
         try {
             await fetch(`${API_URL}/auth/logout`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${token}` },
+                credentials: 'include'
             });
         } finally {
             this.clearTokens();

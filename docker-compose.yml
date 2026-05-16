@@ -37,6 +37,8 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:password@db:5432/auth_system
       - REDIS_HOST=redis
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy

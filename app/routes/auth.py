@@ -34,6 +34,9 @@ async def refresh_token(request: Request, refresh_token: str = Body(..., embed=T
     try:
         payload = decode_token(refresh_token, settings.REFRESH_TOKEN_SECRET)
         token_data = TokenPayload(**payload)
+        # Check if this refresh token has already been revoked
+        if await blacklist_service.is_blacklisted(token_data.jti):
+            raise HTTPException(status_code=401, detail="Refresh token has been revoked")
         if token_data.type != "refresh":
             raise HTTPException(status_code=401, detail="Invalid refresh token")
     except (jwt.PyJWTError, ValueError):
@@ -50,16 +53,26 @@ async def refresh_token(request: Request, refresh_token: str = Body(..., embed=T
 
 
 @router.post("/logout", response_model=StandardActionResponse)
-async def logout(token: str = Depends(oauth2_scheme)):
-    # T7: Calculate TTL from the token's actual expiry instead of hardcoded 3600
+async def logout(
+    token: str = Depends(oauth2_scheme),
+    refresh_token: str = Body(..., embed=True)
+):
+    # Blacklist the access token
     try:
         payload = decode_token(token, settings.ACCESS_TOKEN_SECRET)
         token_data = TokenPayload(**payload)
         remaining = token_data.exp - int(datetime.now(timezone.utc).timestamp())
-        ttl = max(remaining, 0)
-        jti = token_data.jti
+        await blacklist_service.add(token_data.jti, max(remaining, 0))
     except Exception:
-        ttl = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-        jti = token  # Fallback to full token if decode fails
-    await blacklist_service.add(jti, ttl)
+        pass  # Already expired — nothing to blacklist
+
+    # Blacklist the refresh token
+    try:
+        r_payload = decode_token(refresh_token, settings.REFRESH_TOKEN_SECRET)
+        r_data = TokenPayload(**r_payload)
+        r_remaining = r_data.exp - int(datetime.now(timezone.utc).timestamp())
+        await blacklist_service.add(r_data.jti, max(r_remaining, 0))
+    except Exception:
+        pass  # Already expired — nothing to blacklist
+
     return StandardActionResponse(detail="Revocation complete")
