@@ -49,7 +49,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Lint with flake8
-      run: flake8 app
+      run: flake8 --config=.flake8 app
 
     - name: Security scan with Bandit
       run: bandit -r app -x app/tests
