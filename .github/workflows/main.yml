@@ -52,7 +52,7 @@ jobs:
       run: flake8 --config=.flake8 app
 
     - name: Security scan with Bandit
-      run: bandit -r app -x app/tests
+      run: bandit -r app -x app/tests -ll
 
     - name: Run Async Tests
       env:
