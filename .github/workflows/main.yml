@@ -25,6 +25,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
     - uses: actions/checkout@v4
 
@@ -48,7 +58,9 @@ jobs:
       env:
         ACCESS_TOKEN_SECRET: ci_test_access_secret_do_not_use_in_prod
         REFRESH_TOKEN_SECRET: ci_test_refresh_secret_do_not_use_in_prod
+        ALGORITHM: HS256
         DATABASE_URL: "postgresql+asyncpg://postgres:password@localhost:5432/auth_test"
         REDIS_HOST: "localhost"
         REDIS_PORT: "6379"
+        USE_REDIS: "True"
       run: pytest
