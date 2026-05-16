@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Advanced Asynchronous Backend"
     ACCESS_TOKEN_SECRET: str
@@ -14,5 +15,6 @@ class Settings(BaseSettings):
     BCRYPT_ROUNDS: int = 12
 
     model_config = SettingsConfigDict(env_file=".env")
+
 
 settings = Settings()

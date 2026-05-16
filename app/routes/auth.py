@@ -15,15 +15,18 @@ import jwt
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 @router.post("/register", response_model=UserRegistrationResponse, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 async def register(request: Request, user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     return await auth_service.register_user(db, user_in)
 
+
 @router.post("/login", response_model=TokenExchangeResponse)
 @limiter.limit("5/minute")
 async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     return await auth_service.authenticate(db, form_data.username, form_data.password)
+
 
 @router.post("/refresh", response_model=TokenExchangeResponse)
 @limiter.limit("10/minute")
@@ -44,6 +47,7 @@ async def refresh_token(request: Request, refresh_token: str = Body(..., embed=T
         access_token=create_access_token(token_data.sub),
         refresh_token=create_refresh_token(token_data.sub)
     )
+
 
 @router.post("/logout", response_model=StandardActionResponse)
 async def logout(token: str = Depends(oauth2_scheme)):

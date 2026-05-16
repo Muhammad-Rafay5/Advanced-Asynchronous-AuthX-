@@ -2,8 +2,10 @@ from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from datetime import datetime
 from uuid import UUID
 
+
 class UserBase(BaseModel):
     email: EmailStr
+
 
 class UserCreate(UserBase):
     password: str
@@ -19,6 +21,7 @@ class UserCreate(UserBase):
             raise ValueError("Password must contain at least one digit")
         return v
 
+
 class UserRegistrationResponse(UserBase):
     id: UUID
     is_active: bool
@@ -26,4 +29,3 @@ class UserRegistrationResponse(UserBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-

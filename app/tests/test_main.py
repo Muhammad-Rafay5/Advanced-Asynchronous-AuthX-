@@ -4,6 +4,7 @@ from httpx import ASGITransport, AsyncClient
 from app.main import app
 from app.db.database import Base, engine, AsyncSessionLocal
 
+
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
     async with engine.begin() as conn:
@@ -12,6 +13,7 @@ async def db_session():
         yield session
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
 
 @pytest.mark.asyncio
 async def test_full_workflow():

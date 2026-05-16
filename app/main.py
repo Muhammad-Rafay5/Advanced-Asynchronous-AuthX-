@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
@@ -17,6 +17,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,7 +48,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(users_router)
 
+
 @app.get("/")
 async def root():
     return {"message": "Advanced Asynchronous Auth System is Running"}
-

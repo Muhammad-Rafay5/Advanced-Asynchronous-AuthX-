@@ -6,12 +6,13 @@ from app.core.security import get_password_hash, verify_password, create_access_
 from app.schemas.user import UserCreate
 from app.schemas.auth import TokenExchangeResponse
 
+
 class AuthService:
     async def register_user(self, db: AsyncSession, user_in: UserCreate) -> User:
         result = await db.execute(select(User).where(User.email == user_in.email))
         if result.scalars().first():
             raise HTTPException(status_code=400, detail="User already exists")
-        
+
         new_user = User(
             email=user_in.email,
             hashed_password=get_password_hash(user_in.password)
@@ -35,10 +36,11 @@ class AuthService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account is deactivated",
             )
-        
+
         return TokenExchangeResponse(
             access_token=create_access_token(user.id),
             refresh_token=create_refresh_token(user.id)
         )
+
 
 auth_service = AuthService()

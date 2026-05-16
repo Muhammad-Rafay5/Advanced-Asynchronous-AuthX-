@@ -1,6 +1,7 @@
 import redis.asyncio as redis
 from app.core.config import settings
 
+
 class BlacklistService:
     def __init__(self):
         try:
@@ -26,5 +27,6 @@ class BlacklistService:
             except Exception:
                 return False
         return token_jti in self._internal_blacklist
+
 
 blacklist_service = BlacklistService()

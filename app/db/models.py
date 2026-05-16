@@ -3,6 +3,7 @@ from sqlalchemy.sql import func
 import uuid
 from app.db.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
