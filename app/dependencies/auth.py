@@ -23,18 +23,19 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    if await blacklist_service.is_blacklisted(token):
-        raise credentials_exception
-
     try:
         payload = decode_token(token, settings.ACCESS_TOKEN_SECRET)
         token_data = TokenPayload(**payload)
         if token_data.type != "access":
             raise credentials_exception
-    except (jwt.PyJWTError, ValueError):
+        user_id = uuid.UUID(token_data.sub)
+    except (jwt.PyJWTError, ValueError, AttributeError):
+        raise credentials_exception
+
+    if await blacklist_service.is_blacklisted(token_data.jti):
         raise credentials_exception
         
-    result = await db.execute(select(User).where(User.id == uuid.UUID(token_data.sub)))
+    result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if user is None:
         raise credentials_exception

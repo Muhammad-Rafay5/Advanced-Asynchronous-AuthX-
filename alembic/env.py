@@ -38,7 +38,9 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql")
+    url = settings.DATABASE_URL
+    url = url.replace("postgresql+asyncpg", "postgresql")
+    url = url.replace("sqlite+aiosqlite", "sqlite")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -59,7 +61,10 @@ def run_migrations_online() -> None:
     # Actually, alembic usually expects a sync driver or a specific setup.
     # For now, let's just set the URL in the config dynamically.
     configuration = config.get_section(config.config_ini_section)
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL.replace("postgresql+asyncpg", "postgresql")
+    sync_url = settings.DATABASE_URL
+    sync_url = sync_url.replace("postgresql+asyncpg", "postgresql")
+    sync_url = sync_url.replace("sqlite+aiosqlite", "sqlite")
+    configuration["sqlalchemy.url"] = sync_url
     
     connectable = engine_from_config(
         configuration,

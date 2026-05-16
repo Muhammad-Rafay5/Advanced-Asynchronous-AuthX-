@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.db.models import User
 from app.schemas.user import UserRegistrationResponse
 from app.dependencies.auth import get_current_user
@@ -17,5 +17,11 @@ async def read_users(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if not current_user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superuser access required"
+        )
     result = await db.execute(select(User))
     return result.scalars().all()
+

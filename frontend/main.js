@@ -1,13 +1,21 @@
-// DOM Elements
-const sections = {
-    login: document.getElementById('login-section'),
-    register: document.getElementById('register-section'),
-    dashboard: document.getElementById('dashboard-section'),
-    sessions: document.getElementById('sessions-section')
-};
-
-const navLinks = document.getElementById('nav-links');
+// Global Auth State
+let currentUser = null;
 let countdownInterval;
+let isLoadingSessions = false;
+
+// DOM Elements - Lazy initialized
+const getElements = () => ({
+    sections: {
+        login: document.getElementById('login-section'),
+        register: document.getElementById('register-section'),
+        dashboard: document.getElementById('dashboard-section')
+    },
+    sidebar: document.getElementById('sidebar'),
+    mainContent: document.getElementById('main-content'),
+    countdown: document.getElementById('session-countdown'),
+    tableBody: document.getElementById('user-table-body'),
+    countBadge: document.getElementById('user-count')
+});
 
 // Helper: Decode JWT
 function parseJwt(token) {
@@ -20,39 +28,47 @@ function parseJwt(token) {
     }
 }
 
-// Navigation Logic
-function showSection(name) {
-    Object.values(sections).forEach(s => {
-        if (s) s.classList.remove('active');
-    });
-    
-    if (sections[name]) {
-        sections[name].classList.add('active');
-        updateNav(name);
-        
-        if (name === 'sessions') loadSessions();
-    }
+// Sanitize user content to prevent XSS
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
 }
 
-function updateNav(currentSection) {
-    const isLoggedIn = !!authService.getAccessToken();
-    if (isLoggedIn) {
-        navLinks.innerHTML = `
-            <button class="nav-btn" onclick="showSection('dashboard')">Profile</button>
-            <button class="nav-btn" onclick="showSection('sessions')">Users List</button>
-            <button class="btn-primary" onclick="handleLogout()">Logout</button>
-        `;
+// Navigation Logic
+function showSection(name, skipDataLoad = false) {
+    const el = getElements();
+    if (!el.sections[name]) return;
+
+    // Only hide others if not already active to prevent flickering/recursion
+    if (!el.sections[name].classList.contains('active')) {
+        Object.values(el.sections).forEach(s => {
+            if (s) {
+                s.classList.add('hidden');
+                s.classList.remove('active');
+            }
+        });
+        el.sections[name].classList.remove('hidden');
+        el.sections[name].classList.add('active');
+    }
+    
+    const isAuth = name === 'login' || name === 'register';
+    if (isAuth) {
+        if (el.sidebar) el.sidebar.classList.add('hidden');
+        if (el.mainContent) el.mainContent.style.marginLeft = '0';
     } else {
-        navLinks.innerHTML = `
-            <button class="nav-btn" onclick="showSection('login')">Login</button>
-            <button class="btn-primary" onclick="showSection('register')">Get Started</button>
-        `;
+        if (el.sidebar) el.sidebar.classList.remove('hidden');
+        if (el.mainContent) el.mainContent.style.marginLeft = '';
+        
+        // Load data ONLY if explicitly requested or on first show
+        if (name === 'dashboard' && !skipDataLoad) loadDashboard();
     }
 }
 
 // UI Feedback
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
+    if (!container) return;
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
     toast.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span> ${message}`;
@@ -66,53 +82,60 @@ function showToast(message, type = 'success') {
 }
 
 // Auth Handlers
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('login-email').value;
-    const password = document.getElementById('login-password').value;
+const loginForm = document.getElementById('login-form');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
 
-    try {
-        await authService.login(email, password);
-        showToast('Successfully logged in!');
-        loadDashboard();
-    } catch (err) {
-        showToast(err.message, 'error');
-    }
-});
+        try {
+            await authService.login(email, password);
+            showToast('Access Authorized');
+            await loadDashboard();
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
 
-document.getElementById('register-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('reg-email').value;
-    const password = document.getElementById('reg-password').value;
+const registerForm = document.getElementById('register-form');
+if (registerForm) {
+    registerForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
 
-    try {
-        await authService.register(email, password);
-        showToast('Account created! You can now login.');
-        showSection('login');
-    } catch (err) {
-        showToast(err.message, 'error');
-    }
-});
+        try {
+            await authService.register(email, password);
+            showToast('Identity registered in repository');
+            showSection('login');
+        } catch (err) {
+            showToast(err.message, 'error');
+        }
+    });
+}
 
 async function handleLogout() {
     try {
         await authService.logout();
-        showToast('Logged out successfully');
+        showToast('Identity de-authorized');
     } catch (err) {
         authService.clearTokens();
     }
     clearInterval(countdownInterval);
+    currentUser = null;
     showSection('login');
 }
 
 async function handleRefresh() {
     try {
         await authService.refresh();
-        showToast('Session extended!');
+        showToast('Token Rotated');
         startCountdown();
-        if (sections.sessions.classList.contains('active')) loadSessions();
+        await loadSessions();
     } catch (err) {
-        showToast('Refresh failed. Session expired.', 'error');
+        showToast('Re-authorization required', 'error');
         handleLogout();
     }
 }
@@ -124,7 +147,8 @@ function startCountdown() {
     const payload = parseJwt(token);
     if (!payload) return;
 
-    const expiryElement = document.getElementById('session-countdown');
+    const el = getElements();
+    if (!el.countdown) return;
     
     countdownInterval = setInterval(() => {
         const now = Math.floor(Date.now() / 1000);
@@ -132,87 +156,123 @@ function startCountdown() {
 
         if (remaining <= 0) {
             clearInterval(countdownInterval);
-            expiryElement.textContent = "00:00";
+            el.countdown.textContent = "Expired";
+            el.countdown.classList.add('badge-expired');
             handleLogout();
             return;
         }
 
         const mins = Math.floor(remaining / 60).toString().padStart(2, '0');
         const secs = (remaining % 60).toString().padStart(2, '0');
-        expiryElement.textContent = `${mins}:${secs}`;
+        el.countdown.textContent = `${mins}:${secs} Remaining`;
         
-        // Visual warning
         if (remaining < 60) {
-            expiryElement.style.color = '#ff4b4b';
-            expiryElement.classList.add('pulse');
+            el.countdown.classList.add('pulse');
         } else {
-            expiryElement.style.color = 'var(--primary)';
-            expiryElement.classList.remove('pulse');
+            el.countdown.classList.remove('pulse');
         }
     }, 1000);
 }
 
 async function loadDashboard() {
     try {
-        const user = await authService.getCurrentUser();
-        document.getElementById('user-greeting').textContent = `Hello, ${user.email.split('@')[0]}`;
-        document.getElementById('display-email').textContent = user.email;
-        document.getElementById('display-id').textContent = user.id;
-        document.getElementById('user-initials').textContent = user.email[0].toUpperCase();
-        
-        const date = new Date(user.created_at);
-        document.getElementById('display-last-login').textContent = date.toLocaleString();
-        
-        startCountdown();
-        showSection('dashboard');
+        // Prevent recursive calls while loading
+        if (currentUser) {
+            showSection('dashboard', true); // Show without reloading everything
+        } else {
+            currentUser = await authService.getCurrentUser();
+            startCountdown();
+            showSection('dashboard', true); // Show the shell immediately
+        }
+        await loadSessions(); // This is the slow part, load it independently
     } catch (err) {
+        console.error('Dashboard load failed:', err);
         showSection('login');
     }
 }
 
 async function loadSessions() {
-    const tableBody = document.getElementById('user-table-body');
-    tableBody.innerHTML = '<tr><td colspan="4" class="loading">Loading user sessions...</td></tr>';
+    if (isLoadingSessions) return;
+    isLoadingSessions = true;
+
+    const el = getElements();
+    if (!el.tableBody) {
+        isLoadingSessions = false;
+        return;
+    }
+
+    el.tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem;">Synchronizing with Identity Repository...</td></tr>';
     
     try {
         const users = await authService.getAllUsers();
-        tableBody.innerHTML = '';
+        el.tableBody.innerHTML = '';
+        if (el.countBadge) el.countBadge.textContent = `${users.length} Total Identities`;
         
-        users.forEach(u => {
+        users.forEach((u, index) => {
             const row = document.createElement('tr');
-            const statusClass = u.is_active ? 'badge-success' : 'badge-neutral';
+            const isMe = currentUser && u.id === currentUser.id;
             
+            const statusClass = u.is_active ? 'badge-active' : 'badge-neutral';
+            const statusText = u.is_active ? 'Active' : 'Deactivated';
+            const accessLevel = u.is_superuser ? 'Superuser' : 'Standard';
+            const levelClass = u.is_superuser ? 'badge-superuser' : 'badge-standard';
+            
+            let sessionStatus = 'Offline';
+            let sessionClass = 'badge-neutral';
+            
+            if (isMe) {
+                const token = authService.getAccessToken();
+                const payload = parseJwt(token);
+                const now = Math.floor(Date.now() / 1000);
+                if (payload && payload.exp > now) {
+                    sessionStatus = 'Live';
+                    sessionClass = 'badge-standard';
+                } else {
+                    sessionStatus = 'Expired';
+                    sessionClass = 'badge-expired';
+                }
+            }
+
             row.innerHTML = `
+                <td style="color: var(--text-muted);">#${index + 1}</td>
                 <td>
-                    <div class="user-row">
-                        <div class="user-row-avatar">${u.email[0].toUpperCase()}</div>
-                        <div class="user-row-info">
-                            <div class="user-row-email">${u.email}</div>
-                            <div class="user-row-id">${u.id.substring(0, 8)}...</div>
-                        </div>
-                    </div>
+                    <div style="font-weight: 500;">${escapeHtml(u.email)} ${isMe ? '<span style="font-size:0.7rem; color:var(--primary);">(You)</span>' : ''}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(u.id.substring(0, 12))}...</div>
                 </td>
-                <td>${new Date(u.created_at).toLocaleDateString()}</td>
-                <td>${u.is_active ? 'Active' : 'Offline'}</td>
-                <td><span class="status-badge ${statusClass}">● ${u.is_active ? 'Online' : 'Offline'}</span></td>
+                <td><span class="badge ${statusClass}">${statusText}</span></td>
+                <td><span class="badge ${levelClass}">${accessLevel}</span></td>
+                <td>15</td>
+                <td><span class="badge ${sessionClass}" style="border: none;">${sessionStatus}</span></td>
+                <td><button class="btn btn-outline" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">Apply</button></td>
             `;
-            tableBody.appendChild(row);
+            el.tableBody.appendChild(row);
         });
     } catch (err) {
-        tableBody.innerHTML = `<tr><td colspan="4" class="error-cell">Error: ${err.message}</td></tr>`;
+        console.error('Session load failed:', err);
+        el.tableBody.innerHTML = `<tr><td colspan="7" style="color: var(--accent-red); text-align: center;">Error: ${escapeHtml(err.message)}</td></tr>`;
+    } finally {
+        isLoadingSessions = false;
     }
 }
 
 // Global Auth Failure Listener
 window.addEventListener('auth-failed', () => {
-    showToast('Session expired. Please login again.', 'error');
+    showToast('Identity token expired', 'error');
     handleLogout();
 });
 
 // Initial Load
 window.addEventListener('DOMContentLoaded', () => {
-    if (authService.getAccessToken()) {
-        loadDashboard();
+    const token = authService.getAccessToken();
+    if (token) {
+        const payload = parseJwt(token);
+        const now = Math.floor(Date.now() / 1000);
+        if (payload && payload.exp > now) {
+            loadDashboard();
+        } else {
+            authService.clearTokens();
+            showSection('login');
+        }
     } else {
         showSection('login');
     }

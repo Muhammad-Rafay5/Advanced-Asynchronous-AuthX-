@@ -6,9 +6,10 @@ class TokenExchangeResponse(BaseModel):
     token_type: str = "bearer"
 
 class TokenPayload(BaseModel):
-    sub: str = None
-    type: str = None
-    exp: int = None
+    sub: str
+    type: str
+    exp: int
+    jti: str
 
 class StandardActionResponse(BaseModel):
     detail: str

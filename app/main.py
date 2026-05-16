@@ -1,12 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from contextlib import asynccontextmanager
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.db.database import init_db
-from app.db.database import get_db
 from app.core.config import settings
 
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.rate_limit import limiter
 import logging
 
 # Configure Logging
@@ -29,10 +31,14 @@ app = FastAPI(
     version="1.4.2-Prod"
 )
 
+# Attach rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # Configure CORS for Production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Replace with specific domains in production
+    allow_origins=settings.CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,3 +50,4 @@ app.include_router(users_router)
 @app.get("/")
 async def root():
     return {"message": "Advanced Asynchronous Auth System is Running"}
+
