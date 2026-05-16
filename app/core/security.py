@@ -17,9 +17,11 @@ def get_password_hash(password: str) -> str:
 
 
 def create_token(subject: Union[str, Any], expires_delta: timedelta, secret: str, token_type: str) -> str:
-    expire = datetime.now(timezone.utc) + expires_delta
+    now = datetime.now(timezone.utc)
+    expire = now + expires_delta
     to_encode = {
         "exp": expire,
+        "iat": now,           # ← ADDED
         "sub": str(subject),
         "type": token_type,
         "jti": str(uuid4()),

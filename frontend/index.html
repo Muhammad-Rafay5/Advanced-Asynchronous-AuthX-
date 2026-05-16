@@ -93,7 +93,7 @@
             </header>
 
             <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-bottom: 1.5rem;">
-                <button class="btn btn-outline" style="color: var(--accent-orange); border-color: rgba(245, 158, 11, 0.3);">🔄 Rotate My Access</button>
+                <button class="btn btn-outline" style="color: var(--accent-orange); border-color: rgba(245, 158, 11, 0.3);" onclick="handleRefresh()">🔄 Rotate My Access</button>
                 <button class="btn btn-primary" style="background: rgba(139, 92, 246, 0.15); color: var(--primary); border: 1px solid rgba(139, 92, 246, 0.3);" onclick="loadSessions()">🔁 Refresh Directory</button>
             </div>
 
@@ -117,15 +117,6 @@
                         <span class="stat-label">Compliance</span>
                         <div class="stat-value" style="color: var(--accent-blue);">v1.4.2 Standard</div>
                     </div>
-                </div>
-
-                <div class="policy-footer">
-                    <div class="policy-input">
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Global Policy Update (Apply to All)</span>
-                        <input type="number" value="15">
-                        <span style="font-size: 0.85rem;">Minutes</span>
-                    </div>
-                    <button class="btn btn-outline" style="border-radius: 20px; font-size: 0.75rem;">🚀 Enforce Global Policy</button>
                 </div>
             </div>
 

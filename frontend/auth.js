@@ -1,18 +1,25 @@
 const API_URL = 'http://127.0.0.1:8000';
 
 let _accessToken = null;
+let _refreshToken = null;
 
 const authService = {
-    saveTokens(access) {
+    saveTokens(access, refresh = null) {
         _accessToken = access;
+        if (refresh !== null) _refreshToken = refresh;
     },
 
     getAccessToken() {
         return _accessToken;
     },
 
+    getRefreshToken() {
+        return _refreshToken;
+    },
+
     clearTokens() {
         _accessToken = null;
+        _refreshToken = null;
     },
 
     async register(email, password) {
@@ -47,15 +54,18 @@ const authService = {
         }
 
         const data = await response.json();
-        this.saveTokens(data.access_token);
+        this.saveTokens(data.access_token, data.refresh_token);
         return data;
     },
 
     async refresh() {
+        const refreshToken = this.getRefreshToken();
+        if (!refreshToken) throw new Error('No refresh token available');
+
         const response = await fetch(`${API_URL}/auth/refresh`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            credentials: 'include'
+            body: JSON.stringify({ refresh_token: refreshToken })
         });
 
         if (!response.ok) {
@@ -64,7 +74,7 @@ const authService = {
         }
 
         const data = await response.json();
-        this.saveTokens(data.access_token);
+        this.saveTokens(data.access_token, data.refresh_token);
         
         window.dispatchEvent(new CustomEvent('tokens-refreshed'));
         
@@ -103,11 +113,15 @@ const authService = {
 
     async logout() {
         const token = this.getAccessToken();
+        const refreshToken = this.getRefreshToken();
         try {
             await fetch(`${API_URL}/auth/logout`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                credentials: 'include'
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ refresh_token: refreshToken })
             });
         } finally {
             this.clearTokens();

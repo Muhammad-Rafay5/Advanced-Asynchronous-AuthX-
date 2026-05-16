@@ -273,19 +273,9 @@ window.addEventListener('tokens-refreshed', startCountdown);
 
 // Initial Load
 window.addEventListener('DOMContentLoaded', () => {
-    const token = authService.getAccessToken();
-    if (token) {
-        const payload = parseJwt(token);
-        const now = Math.floor(Date.now() / 1000);
-        if (payload && payload.exp > now) {
-            loadDashboard();
-        } else {
-            authService.clearTokens();
-            showSection('login');
-        }
-    } else {
-        showSection('login');
-    }
+    // Access token is in-memory only — always cleared on page reload.
+    // Users must log in again after a page refresh.
+    showSection('login');
 
     const regPassword = document.getElementById('reg-password');
     if (regPassword) {

@@ -34,15 +34,17 @@ async def refresh_token(request: Request, refresh_token: str = Body(..., embed=T
     try:
         payload = decode_token(refresh_token, settings.REFRESH_TOKEN_SECRET)
         token_data = TokenPayload(**payload)
-        # Check if this refresh token has already been revoked
-        if await blacklist_service.is_blacklisted(token_data.jti):
-            raise HTTPException(status_code=401, detail="Refresh token has been revoked")
-        if token_data.type != "refresh":
-            raise HTTPException(status_code=401, detail="Invalid refresh token")
     except (jwt.PyJWTError, ValueError):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
-    # T8: Blacklist the old refresh token's JTI and issue a new one (rotation)
+    # Type check BEFORE blacklist check (correct order)
+    if token_data.type != "refresh":
+        raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+    if await blacklist_service.is_blacklisted(token_data.jti):
+        raise HTTPException(status_code=401, detail="Refresh token has been revoked")
+
+    # Rotate: blacklist old JTI, issue new token pair
     remaining = token_data.exp - int(datetime.now(timezone.utc).timestamp())
     await blacklist_service.add(token_data.jti, max(remaining, 0))
 

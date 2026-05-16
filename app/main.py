@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Initializing Database...")
-    await init_db()
+    # await init_db()
     logger.info("Initializing Redis Blacklist Service...")
     await blacklist_service.initialize()
     yield

@@ -1,5 +1,6 @@
 import redis.asyncio as redis
 import logging
+import asyncio
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -7,6 +8,11 @@ logger = logging.getLogger(__name__)
 
 class BlacklistService:
     def __init__(self):
+        # IMPORTANT: The _internal_blacklist set is process-local.
+        # With gunicorn --workers > 1 and no Redis, each worker has a separate
+        # blacklist. A token revoked in worker A will still be accepted by worker B.
+        # Always run Redis in production. Only use the in-memory fallback for
+        # single-process development or testing.
         self.redis = redis.Redis(
             host=settings.REDIS_HOST,
             port=settings.REDIS_PORT,
@@ -17,13 +23,19 @@ class BlacklistService:
 
     async def initialize(self):
         """Call this during app startup to verify Redis connectivity."""
+        if not settings.USE_REDIS:
+            self._use_redis = False
+            logger.info("Redis disabled by config, using in-memory blacklist.")
+            return
+
         try:
-            await self.redis.ping()
+            # Short timeout for initial check to avoid startup hang
+            await asyncio.wait_for(self.redis.ping(), timeout=1.0)
             self._use_redis = True
             logger.info("Redis blacklist service: connected.")
         except Exception as e:
             self._use_redis = False
-            logger.warning(f"Redis unavailable, using in-memory blacklist fallback: {e}")
+            logger.warning(f"Redis connection failed, using in-memory fallback: {e}")
 
     async def add(self, token_jti: str, expires_in_seconds: int):
         if self._use_redis:
