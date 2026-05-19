@@ -16,6 +16,7 @@ class Settings(BaseSettings):
 
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
+    REDIS_PASSWORD: str = ""
     USE_REDIS: bool = False  # Set to True in .env to enable Redis blacklist
     CORS_ORIGINS: str = "http://localhost:5500,http://127.0.0.1:5500"
     BCRYPT_ROUNDS: int = 12

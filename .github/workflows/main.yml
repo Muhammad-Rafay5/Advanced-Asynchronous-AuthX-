@@ -64,3 +64,28 @@ jobs:
         REDIS_PORT: "6379"
         USE_REDIS: "True"
       run: pytest
+
+    - name: Install Locust
+      run: pip install locust
+
+    - name: Start app in background
+      env:
+        ACCESS_TOKEN_SECRET: ci_test_access_secret
+        REFRESH_TOKEN_SECRET: ci_test_refresh_secret
+        ALGORITHM: HS256
+        DATABASE_URL: "postgresql+asyncpg://postgres:password@localhost:5432/auth_test"
+        REDIS_HOST: "localhost"
+        REDIS_PORT: "6379"
+      run: |
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        sleep 5
+
+    - name: Run load test
+      run: |
+        locust -f tests/locustfile.py \
+          --headless \
+          --users 100 \
+          --spawn-rate 10 \
+          --run-time 30s \
+          --host http://localhost:8000 \
+          --exit-code-on-error 1

@@ -7,10 +7,17 @@ engine = create_async_engine(
     pool_size=settings.DB_POOL_SIZE,
     max_overflow=settings.DB_MAX_OVERFLOW,
     pool_pre_ping=True,
+    pool_recycle=1800,
+    pool_timeout=30,
     echo=False,
 )
 
-AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+AsyncSessionLocal = async_sessionmaker(engine,
+ expire_on_commit=False, 
+ class_=AsyncSession,
+ autocommit=False,
+ autoflush=False,
+ )
 
 
 class Base(DeclarativeBase):
