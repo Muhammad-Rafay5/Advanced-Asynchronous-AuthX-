@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
     # Startup
     logger.info("Initializing Database...")
-    
+
     logger.info("Initializing Redis Blacklist Service...")
     await blacklist_service.initialize()
 
@@ -91,4 +91,4 @@ app.include_router(users_router)
 async def root():
     return {
         "message": "Advanced Asynchronous Auth System is Running"
-    }
+        }
