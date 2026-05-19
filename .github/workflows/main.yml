@@ -2,9 +2,9 @@ name: Advanced Auth CI/CD
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, feature/performance-fixes ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, feature/performance-fixes ]
 
 jobs:
   build-and-test:
