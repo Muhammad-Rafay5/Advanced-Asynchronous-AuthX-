@@ -2,7 +2,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException, status
 from app.db.models import User
-from app.core.security import get_password_hash, verify_password, create_access_token, create_refresh_token, create_password_reset_token, decode_token
+from app.core.security import (
+    get_password_hash, verify_password, create_access_token,
+    create_refresh_token, create_password_reset_token, decode_token
+)
 from app.schemas.user import UserCreate
 from app.schemas.auth import TokenExchangeResponse
 from app.core.config import settings
@@ -53,7 +56,7 @@ class AuthService:
             # We don't want to leak whether the email exists, just return silently or log
             print(f"Password reset requested for non-existent email: {email}")
             return {"message": "If your email is registered, you will receive a password reset link."}
-        
+
         reset_token = create_password_reset_token(email)
         # Simulate sending email
         print("="*40)

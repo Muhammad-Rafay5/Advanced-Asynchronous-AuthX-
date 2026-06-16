@@ -40,6 +40,8 @@ async def test_full_workflow(db_session):
 
         # 1. Registration
         reg_response = await ac.post("/auth/register", json={
+            "full_name": "Test User",
+            "company_name": "Test Company",
             "email": test_email,
             "password": test_password
         })
