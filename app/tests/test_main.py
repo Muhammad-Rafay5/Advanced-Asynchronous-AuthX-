@@ -43,7 +43,9 @@ async def test_full_workflow(db_session):
             "full_name": "Test User",
             "company_name": "Test Company",
             "email": test_email,
-            "password": test_password
+            "password": test_password,
+            "confirm_password": test_password,
+            "terms_accepted": True
         })
         assert reg_response.status_code == 201
 
